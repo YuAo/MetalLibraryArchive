@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "swift-crypto",
+        "repositoryURL": "https://github.com/apple/swift-crypto.git",
+        "state": {
+          "branch": null,
+          "revision": "a8911e0fadc25aef1071d582355bd1037a176060",
+          "version": "2.0.4"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

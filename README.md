@@ -359,8 +359,8 @@ After a few rounds, I was able to get the function type table, target OS table, 
 
 I also found a few things interesting in this process:
 
-- Metal does not support watchOS, however it is possible to build a `metallib` targeting watchOS. And Apple does include some `metallib`s in the watchOS SDK. (e.g. Xcode.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreImage.framework/ci_filters.metallib)
+- Metal does not support watchOS, however it is possible to build a `metallib` targeting watchOS. And Apple does include some `metallib`s in the watchOS SDK. (e.g. `Xcode.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreImage.framework/ci_filters.metallib`)
 
-- The empty `metallib` targeting an old version of iOS is mistakenly marked as targeting macOS.
+- Empty `metallib`s targeting old versions of iOS are [mistakenly marked as targeting macOS](https://github.com/YuAo/MetalLibraryArchive/blob/da16437b0549c7b21408e51b210627f73e323cbf/Tests/MetalLibraryArchiveTests/Tests.swift#L559).
 
 - I cannot build a `metallib` that has the target OS value `0x85`. At first I thought it might be reserved for the concealed [realityOS](https://github.com/apple-oss-distributions/dyld/blob/5c9192436bb195e7a8fe61f22a229ee3d30d8222/common/MachOFile.cpp#L578), but later found out it is [more likely for the bridgeOS](https://github.com/apple-oss-distributions/dyld/blob/419f8cbca6fb3420a248f158714a9d322af2aa5a/cache-builder/mrm_shared_cache_builder.h#L45).

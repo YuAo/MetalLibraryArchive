@@ -189,11 +189,17 @@ struct MetalLibraryView: View {
         }
         .toolbar(content: {
             ToolbarItem(placement: .navigation, content: {
-                Text("\(archive.targetPlatform.description) - \(archive.libraryType.description)")
-                    .font(Font.system(.footnote).weight(.medium))
-                    .foregroundColor(.white)
-                    .padding(6)
-                    .background(RoundedRectangle(cornerRadius: 6).foregroundColor(controlActiveState == .inactive ? .gray.opacity(0.5) : .gray))
+                Group {
+                    if let deploymentTarget = archive.deploymentTarget {
+                        Text("\(archive.targetPlatform.description) (\(deploymentTarget.operatingSystem.description) \(deploymentTarget.operatingSystemVersion.description)) - \(archive.libraryType.description)")
+                    } else {
+                        Text("\(archive.targetPlatform.description) - \(archive.libraryType.description)")
+                    }
+                }
+                .font(Font.system(.footnote).weight(.medium))
+                .foregroundColor(.white)
+                .padding(6)
+                .background(RoundedRectangle(cornerRadius: 6).foregroundColor(controlActiveState == .inactive ? .gray.opacity(0.5) : .gray))
             })
             ToolbarItem(placement: .primaryAction, content: {
                 Menu(content: {

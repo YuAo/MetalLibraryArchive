@@ -219,7 +219,7 @@ struct MetalLibraryView: View {
             } else {
                 class AlertDelegate: NSObject, NSAlertDelegate {
                     func alertShowHelp(_ alert: NSAlert) -> Bool {
-                        NSWorkspace.shared.open(URL(string: "https://github.com")!)
+                        NSWorkspace.shared.open(URL(string: "https://github.com/YuAo/MetalLibraryArchive")!)
                         return true
                     }
                 }

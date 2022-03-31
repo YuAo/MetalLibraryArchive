@@ -230,14 +230,14 @@ public struct Archive: Hashable {
         let functionListOffset = try dataScanner.scan(UInt64.self) //24...31
         let functionListSize = try dataScanner.scan(UInt64.self) //32...39
         
-        // Function constants offset
-        let functionConstantsListOffset = try dataScanner.scan(UInt64.self) //40...47
-        // Function constants size
+        // Public metadata offset
+        let publicMetadataOffset = try dataScanner.scan(UInt64.self) //40...47
+        // Public metadata size
         _ = try dataScanner.scan(UInt64.self) //48...55
         
-        // Debug info offset
+        // Private metadata offset
         _ = try dataScanner.scan(UInt64.self) //56...63
-        // Debug info size
+        // Private metadata size
         _ = try dataScanner.scan(UInt64.self) //64...71
         
         let bitcodeOffset = try dataScanner.scan(UInt64.self) //72...79
@@ -256,7 +256,7 @@ public struct Archive: Hashable {
         }
         
         // Read header extension tags, 4 is for `ENDT` or `0x00000000`
-        if functionListOffset + functionListSize + 4 != functionConstantsListOffset {
+        if functionListOffset + functionListSize + 4 != publicMetadataOffset {
             try dataScanner.seek(to: functionListOffset + functionListSize + 4)
             headerExtensionTags = try dataScanner.scanTags(contentSizeType: UInt16.self)
         } else {
@@ -387,8 +387,8 @@ extension Archive {
                     throw Error.unexpectedTagContentSize(tagName: tag.name)
                 }
                 bitcodeOffset = tag.content.withUnsafeBytes({ pointer in
-                    // 0: function constants offset
-                    // 1: debug info offset
+                    // 0: public metadata offset
+                    // 1: private metadata offset
                     pointer.bindMemory(to: UInt64.self)[2]
                 })
             case "VERS":

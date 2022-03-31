@@ -52,8 +52,8 @@ let functions = archive.functions
 | 12...15    | (UInt16, UInt16) | Version of the target OS (major, minor) |
 | 16...23    | UInt64 | Size of the metallib file     |
 | 24...39    | (UInt64, UInt64) | Offset and size of the function list  |
-| 40...55    | (UInt64, UInt64) | Offset and size of the function constants list |
-| 56...71    | (UInt64, UInt64) | Offset and size of the debug info list |
+| 40...55    | (UInt64, UInt64) | Offset and size of the public metadata section |
+| 56...71    | (UInt64, UInt64) | Offset and size of the private metadata section |
 | 72...87    | (UInt64, UInt64) | Offset and size of the bitcode section  |
 
 | Target Platform | Value |
@@ -113,7 +113,7 @@ The number of tag groups equals to the number of functions.
 | MDSZ | UInt64                           | Size of the bitcode |
 | TYPE | UInt8                            | Type of the function |
 | HASH | SHA256 Digest                    | Hash of the bitcode data (SHA256) |
-| OFFT | (UInt64, UInt64, UInt64)         | Offsets of the information about this function in function constants list, debug info list and bitcode section |
+| OFFT | (UInt64, UInt64, UInt64)         | Offsets of the information about this function in public metadata section, private metadata section and bitcode section |
 | SOFF | UInt64                           | Offset of the source code archive of the function in embeded source code section |
 | VERS | (UInt16, UInt16, UInt16, UInt16) | Bitcode and language versions (air.major, air.minor, language.major, language.minor) |
 | ENDT |                                  | End of the tag group |
@@ -128,13 +128,19 @@ The number of tag groups equals to the number of functions.
 | Extern        | 0x05  | Extern functions complied with `-fcikernel` option          |
 | Intersection  | 0x06  |                                                             |
 
-### Debug Info List
+### Public Metadata
 
-The debug info list contains pathes to the shader source (`DEBI` tag) and `.air` (`DEPF` tag) files.
+Contains information about function constants, tessellation patches, return types, etc.
+
+Tags: `CNST`, `VATT`, `VATY`, `RETR`, `ARGR`, etc.
+
+### Private Metadata
+
+Contains pathes to the shader source (`DEBI` tag) and `.air` (`DEPF` tag) files.
 
 ### Header Extension
 
-Only exists if `FunctionListOffset + FunctionListSize + 4 != FunctionConstantsListOffset`
+Only exists if `FunctionListOffset + FunctionListSize + 4 != PublicMetadataOffset`
 
 | Byte Range | Type   | Content                       |
 |------------|--------|-------------------------------|
@@ -299,15 +305,15 @@ After some digging around I was able to get an overview of the `metallib` file's
 
 - There are 4 sections recorded in the file header:
     
-    - Functions list
+    - Function list
     
-    - Function constants list
+    - Public metadata
     
-    - Debug information list
+    - Private metadata
     
-    - Bitcode
+    - Bitcode modules
 
-    Each section is recorded with an offset and a size. This means sections can be non-contiguous, which allows Apple to introduce new sections in between without breaking the compatibility. And Apple did that exactly for the "header extension" section - it lies between the function list and the function constants list.
+    Each section is recorded with an offset and a size. This means sections can be non-contiguous, which allows Apple to introduce new sections in between without breaking the compatibility. And Apple did that exactly for the "header extension" section - it lies between the function list and the public metadata section.
     
 - Most of the sections (except the bitcode section) resemble a "tag" based structure:
 
@@ -364,3 +370,74 @@ I also found a few things interesting in this process:
 - Empty `metallib`s targeting old versions of iOS are [mistakenly marked as targeting macOS](https://github.com/YuAo/MetalLibraryArchive/blob/da16437b0549c7b21408e51b210627f73e323cbf/Tests/MetalLibraryArchiveTests/Tests.swift#L559).
 
 - I cannot build a `metallib` that has the target OS value `0x85`. At first I thought it might be reserved for the concealed [realityOS](https://github.com/apple-oss-distributions/dyld/blob/5c9192436bb195e7a8fe61f22a229ee3d30d8222/common/MachOFile.cpp#L578), but later found out it is [more likely for the bridgeOS](https://github.com/apple-oss-distributions/dyld/blob/419f8cbca6fb3420a248f158714a9d322af2aa5a/cache-builder/mrm_shared_cache_builder.h#L45).
+
+### Updates
+
+**Mar 31, 2022** 
+
+The `air-lld` (`Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/metal/ios/bin/air-lld`) also provides a lot of information about how the `metallib` file is built. Some section names and descriptions are updated.
+
+```
+int __ZN4llvm3air20MetalLibObjectWriter5writeEv() {
+    r14 = rdi;
+    rax = llvm::air::MetalLibObjectWriter::writeHeader();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_100035135:
+    rax = llvm::air::MetalLibObjectWriter::writeFunctionList();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_100035141:
+    rax = llvm::air::MetalLibObjectWriter::writeHeaderExtension();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_10003514d:
+    rax = llvm::air::MetalLibObjectWriter::writePublicMetadata();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_100035159:
+    rax = llvm::air::MetalLibObjectWriter::writePrivateMetadata();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_100035165:
+    rax = llvm::air::MetalLibObjectWriter::writeModuleList();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_100035171:
+    rax = llvm::air::MetalLibObjectWriter::writeSources();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_10003517d:
+    rax = llvm::air::MetalLibObjectWriter::writeDynamicHeader();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_100035189:
+    rax = llvm::air::MetalLibObjectWriter::writeVariableList();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_100035195:
+    rax = llvm::air::MetalLibObjectWriter::writeImportedSymbolList();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_1000351a1:
+    rax = llvm::air::MetalLibObjectWriter::computeUUID();
+    if (rax != 0x0) goto loc_1000351b9;
+
+loc_1000351ad:
+    rax = llvm::air::MetalLibObjectWriter::backpatchAllLocations();
+    if (rax == 0x0) goto loc_1000351c2;
+
+loc_1000351b9:
+    rbx = rax;
+    goto loc_1000351bb;
+
+loc_1000351bb:
+    rax = rbx;
+    return rax;
+
+loc_1000351c2:
+    rbx = 0x0;
+    std::__1::system_category();
+    goto loc_1000351bb;
+}
+```

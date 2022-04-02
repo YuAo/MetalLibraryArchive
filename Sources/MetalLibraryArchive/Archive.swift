@@ -118,6 +118,7 @@ public struct Archive: Hashable {
         case unexpectedTargetPlatform(Int)
         case unexpectedBitcodeSize
         case unexpectedOperatingSystemType(Int)
+        case unexpectedFileSize
         
         public var errorDescription: String? {
             switch self {
@@ -145,6 +146,8 @@ public struct Archive: Hashable {
                 return "Unexpected bitcode size."
             case .unexpectedOperatingSystemType(let value):
                 return "Unexpected OS type: \(value)."
+            case .unexpectedFileSize:
+                return "Unexpected file size."
             }
         }
         
@@ -225,7 +228,9 @@ public struct Archive: Hashable {
 
         // 16...23
         let fileSize = try dataScanner.scan(UInt64.self)
-        assert(fileSize == data.count)
+        guard fileSize == data.count else {
+            throw Error.unexpectedFileSize
+        }
         
         let functionListOffset = try dataScanner.scan(UInt64.self) //24...31
         let functionListSize = try dataScanner.scan(UInt64.self) //32...39

@@ -274,6 +274,8 @@ class MetalLibraryArchiveTests_macOSSDK: XCTestCase {
         XCTAssertEqual(function.name, "test")
         XCTAssertEqual(function.type, .extern)
         XCTAssert(function.bitcode.count > 0)
+        XCTAssert(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "RETR" }))
+        XCTAssert(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "ARGR" }))
     }
     
     func testLanguageVersion_2_0() throws {
@@ -441,6 +443,124 @@ class MetalLibraryArchiveTests_macOSSDK: XCTestCase {
         }
     }
     
+    func testTessellationFuntion() throws {
+        let source = """
+        #include <metal_stdlib>
+        using namespace metal;
+        
+        struct ControlPoint {
+            float3 position [[attribute(0)]];
+            float3 normal   [[attribute(1)]];
+        };
+        
+        struct PatchIn {
+            patch_control_point<ControlPoint> controlPoints;
+        };
+        
+        struct VertexOut {
+            float4 position [[position]];
+        };
+
+        [[patch(quad, 4)]]
+        vertex VertexOut vertex_subdiv_quad(PatchIn patch [[stage_in]],
+                                            float2 positionInPatch [[position_in_patch]]) {
+            VertexOut out = {0};
+            return out;
+        }
+        """
+        let data = try self.makeLibrary(source: source)
+        let archive = try Archive(data: data)
+        XCTAssertEqual(archive.functions.count, 1)
+        XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
+        XCTAssertEqual(archive.libraryType, .executable)
+        let tessellationTag = try XCTUnwrap(archive.functions[0].tags.first(where: { $0.name == "TESS" }))
+        XCTAssertEqual(tessellationTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), 4 << 2 | 2)
+        XCTAssert(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "VATT" }))
+        XCTAssert(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "VATY" }))
+    }
+    
+    func testFuntionConstants() throws {
+        let source = """
+        #include <metal_stdlib>
+        constant int constantValueA [[function_constant(0)]];
+        kernel void testKernel(device float *io) {
+            for (int i = 0; i < constantValueA; i += 1) {
+                io[i] = 0;
+            }
+        }
+        """
+        let data = try self.makeLibrary(source: source)
+        let archive = try Archive(data: data)
+        XCTAssertEqual(archive.functions.count, 1)
+        XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
+        XCTAssertEqual(archive.libraryType, .executable)
+        XCTAssert(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "CNST" }))
+    }
+    
+    func testFuntionConstants_unused() throws {
+        let source = """
+        #include <metal_stdlib>
+        constant int constantValueA [[function_constant(0)]];
+        kernel void testKernel(device float *io) {
+            for (int i = 0; i < constantValueA; i += 1) {
+                break;
+            }
+        }
+        """
+        let data = try self.makeLibrary(source: source)
+        let archive = try Archive(data: data)
+        XCTAssertEqual(archive.functions.count, 1)
+        XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
+        XCTAssertEqual(archive.libraryType, .executable)
+        XCTAssertEqual(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "CNST" }), false)
+    }
+    
+    func testLayeredRendering_uint() throws {
+        let source = """
+        typedef struct {
+            uint   layer [[render_target_array_index]];
+            float4 position [[position]];
+        } ColorInOut;
+        
+        vertex ColorInOut vertexTransform(){
+            ColorInOut out;
+            out.layer = 0;
+            out.position = float4(0);
+            return out;
+        }
+        """
+        let data = try self.makeLibrary(source: source)
+        let archive = try Archive(data: data)
+        XCTAssertEqual(archive.functions.count, 1)
+        XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
+        XCTAssertEqual(archive.libraryType, .executable)
+        let layerTag = try XCTUnwrap(archive.functions[0].tags.first(where: { $0.name == "LAYR" }))
+        XCTAssertEqual(layerTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), 0x21)
+    }
+    
+    func testLayeredRendering_ushort() throws {
+        let source = """
+        typedef struct {
+            ushort   layer [[render_target_array_index]];
+            float4 position [[position]];
+        } ColorInOut;
+        
+        vertex ColorInOut vertexTransform(){
+            ColorInOut out;
+            out.layer = 0;
+            out.position = float4(0);
+            return out;
+        }
+        """
+        let data = try self.makeLibrary(source: source)
+        let archive = try Archive(data: data)
+        XCTAssertEqual(archive.functions.count, 1)
+        XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
+        XCTAssertEqual(archive.libraryType, .executable)
+        let layerTag = try XCTUnwrap(archive.functions[0].tags.first(where: { $0.name == "LAYR" }))
+        XCTAssertEqual(layerTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), 0x29)
+    }
+    
     func testSourceArchives_executable() throws {
         let source = """
         #include <metal_stdlib>
@@ -452,6 +572,7 @@ class MetalLibraryArchiveTests_macOSSDK: XCTestCase {
         XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
         XCTAssertEqual(archive.libraryType, .executable)
         XCTAssert(archive.sourceArchives.count > 0)
+        XCTAssert(archive.functions[0].privateMetadataTags.contains(where: { $0.name == "DEPF" }))
     }
     
     func testSourceArchives_dynamic() throws {

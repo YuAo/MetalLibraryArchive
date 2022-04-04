@@ -41,6 +41,8 @@ public struct Function: Hashable {
     public let type: FunctionType?
     public let languageVersion: LanguageVersion
     public let tags: [Tag]
+    public let publicMetadataTags: [Tag]
+    public let privateMetadataTags: [Tag]
     public let bitcode: Data
 }
 

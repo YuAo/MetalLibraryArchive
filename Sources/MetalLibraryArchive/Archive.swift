@@ -241,7 +241,7 @@ public struct Archive: Hashable {
         _ = try dataScanner.scan(UInt64.self) //48...55
         
         // Private metadata offset
-        _ = try dataScanner.scan(UInt64.self) //56...63
+        let privateMetadataOffset = try dataScanner.scan(UInt64.self) //56...63
         // Private metadata size
         _ = try dataScanner.scan(UInt64.self) //64...71
         
@@ -297,12 +297,33 @@ public struct Archive: Hashable {
         let functions: [Function] = try {
             var entries: [Function] = []
             for info in functionInfos {
-                try dataScanner.seek(to: bitcodeOffset + Int(info.bitcodeOffset))
+                try dataScanner.seek(to: bitcodeOffset + Int(info.offsets.bitcode))
                 let data = try dataScanner.scanData(byteCount: Int(info.bitcodeSize))
                 guard SHA256.hash(data: data) == info.hash else {
                     throw Error.invalidBitcodeHash
                 }
-                entries.append(Function(name: info.name, type: info.type, languageVersion: info.languageVersion, tags: info.tags, bitcode: data))
+                
+                try dataScanner.seek(to: publicMetadataOffset + Int(info.offsets.publicMetadata))
+                let publicMetadataTagSize = try dataScanner.scan(UInt32.self)
+                guard publicMetadataTagSize > 0 else {
+                    throw Error.invalidTagGroupSize
+                }
+                let publicMetadataTags = try dataScanner.scanTags(contentSizeType: UInt16.self)
+                
+                try dataScanner.seek(to: privateMetadataOffset + Int(info.offsets.privateMetadata))
+                let privateMetadataTagsSize = try dataScanner.scan(UInt32.self)
+                guard privateMetadataTagsSize > 0 else {
+                    throw Error.invalidTagGroupSize
+                }
+                let privateMetadataTags = try dataScanner.scanTags(contentSizeType: UInt16.self)
+                
+                entries.append(Function(name: info.name,
+                                        type: info.type,
+                                        languageVersion: info.languageVersion,
+                                        tags: info.tags,
+                                        publicMetadataTags: publicMetadataTags,
+                                        privateMetadataTags: privateMetadataTags,
+                                        bitcode: data))
             }
             return entries
         }()
@@ -348,7 +369,7 @@ extension Archive {
     private struct FunctionInfo {
         var name: String
         var bitcodeSize: UInt64
-        var bitcodeOffset: UInt64
+        var offsets: (publicMetadata: UInt64, privateMetadata: UInt64, bitcode: UInt64)
         var type: FunctionType?
         var languageVersion: LanguageVersion
         var hash: Data
@@ -359,7 +380,7 @@ extension Archive {
         let tags: [Tag] = try scanner.scanTags(contentSizeType: UInt16.self)
         var name: String?
         var bitcodeSize: UInt64?
-        var bitcodeOffset: UInt64?
+        var offsets: (publicMetadata: UInt64, privateMetadata: UInt64, bitcode: UInt64)?
         var type: FunctionType?
         var hash: Data?
         var languageVersion: LanguageVersion?
@@ -391,10 +412,9 @@ extension Archive {
                 guard tag.content.count == MemoryLayout<UInt64>.size * 3 else {
                     throw Error.unexpectedTagContentSize(tagName: tag.name)
                 }
-                bitcodeOffset = tag.content.withUnsafeBytes({ pointer in
-                    // 0: public metadata offset
-                    // 1: private metadata offset
-                    pointer.bindMemory(to: UInt64.self)[2]
+                offsets = tag.content.withUnsafeBytes({ pointer in
+                    let offsetValues = pointer.bindMemory(to: UInt64.self)
+                    return (publicMetadata: offsetValues[0], privateMetadata: offsetValues[1], bitcode: offsetValues[2])
                 })
             case "VERS":
                 guard tag.content.count == MemoryLayout<UInt16>.size * 4 else {
@@ -410,9 +430,9 @@ extension Archive {
                 break
             }
         }
-        guard let name = name, let bitcodeSize = bitcodeSize, let bitcodeOffset = bitcodeOffset, let hash = hash, let languageVersion = languageVersion else {
+        guard let name = name, let bitcodeSize = bitcodeSize, let offsets = offsets, let hash = hash, let languageVersion = languageVersion else {
             throw Error.incompleteFunctionInfo
         }
-        return FunctionInfo(name: name, bitcodeSize: bitcodeSize, bitcodeOffset: bitcodeOffset, type: type, languageVersion: languageVersion, hash: hash, tags: tags)
+        return FunctionInfo(name: name, bitcodeSize: bitcodeSize, offsets: offsets, type: type, languageVersion: languageVersion, hash: hash, tags: tags)
     }
 }

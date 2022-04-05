@@ -18,6 +18,8 @@ struct MetalLibraryView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.controlActiveState) private var controlActiveState
     
+    @ObservedObject private var toastController: ToastController = ToastController()
+    
     init(archive: Archive, filename: String) {
         self.archive = archive
         self.filename = filename
@@ -132,6 +134,39 @@ struct MetalLibraryView: View {
         }
     }
     
+    struct TargetPlatformBadge: View {
+        @Environment(\.colorScheme) private var colorScheme
+        @Environment(\.controlActiveState) private var controlActiveState
+        
+        private var backgroundColor: Color {
+            if controlActiveState == .inactive {
+                return .gray.opacity(0.25)
+            } else {
+                if colorScheme == .dark {
+                    return .gray.opacity(0.25)
+                } else {
+                    return .gray
+                }
+            }
+        }
+
+        let archive: Archive
+        
+        var body: some View {
+            Group {
+                if let deploymentTarget = archive.deploymentTarget {
+                    Text("\(archive.targetPlatform.description) (\(deploymentTarget.operatingSystem.description) \(deploymentTarget.operatingSystemVersion.description)) - \(archive.libraryType.description)")
+                } else {
+                    Text("\(archive.targetPlatform.description) - \(archive.libraryType.description)")
+                }
+            }
+            .font(Font.system(.footnote).weight(.medium))
+            .foregroundColor(.white)
+            .padding(6)
+            .background(RoundedRectangle(cornerRadius: 6).foregroundColor(backgroundColor))
+        }
+    }
+    
     @State private var functionType: FunctionType?
     
     var filteredEntries: [Function] {
@@ -183,23 +218,14 @@ struct MetalLibraryView: View {
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .foregroundColor(colorScheme == .dark ? Color.black : Color.white)
+                        .foregroundColor(colorScheme == .dark ? Color.black.opacity(0.35) : Color.white)
                 )
             }
         }
+        .presenter(for: toastController)
         .toolbar(content: {
             ToolbarItem(placement: .navigation, content: {
-                Group {
-                    if let deploymentTarget = archive.deploymentTarget {
-                        Text("\(archive.targetPlatform.description) (\(deploymentTarget.operatingSystem.description) \(deploymentTarget.operatingSystemVersion.description)) - \(archive.libraryType.description)")
-                    } else {
-                        Text("\(archive.targetPlatform.description) - \(archive.libraryType.description)")
-                    }
-                }
-                .font(Font.system(.footnote).weight(.medium))
-                .foregroundColor(.white)
-                .padding(6)
-                .background(RoundedRectangle(cornerRadius: 6).foregroundColor(controlActiveState == .inactive ? .gray.opacity(0.5) : .gray))
+                TargetPlatformBadge(archive: archive)
             })
             ToolbarItem(placement: .primaryAction, content: {
                 Menu(content: {
@@ -252,9 +278,7 @@ struct MetalLibraryView: View {
         }
         do {
             try Unpacker.unpack(archive, to: url, disassembler: disassemblerURL)
-            let alert = NSAlert()
-            alert.messageText = "Operation completed."
-            alert.runModal()
+            toastController.showToast(title: "Unpack Succeeded", type: .success)
         } catch {
             NSAlert(error: error).runModal()
         }
@@ -264,4 +288,3 @@ struct MetalLibraryView: View {
 extension FunctionType: Identifiable {
     public var id: Int { self.rawValue }
 }
-

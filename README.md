@@ -116,7 +116,7 @@ The number of tag groups equals to the number of functions.
 | OFFT | (UInt64, UInt64, UInt64)         | Offsets of the information about this function in public metadata section, private metadata section and bitcode section |
 | SOFF | UInt64                           | Offset of the source code archive of the function in embeded source code section |
 | VERS | (UInt16, UInt16, UInt16, UInt16) | Bitcode and language versions (air.major, air.minor, language.major, language.minor) |
-| LAYR | UInt8                            | Metal type ID of the `render_target_array_index` (for [layered rendering](https://developer.apple.com/documentation/metal/render_passes/rendering_to_multiple_texture_slices_in_a_draw_command)) |
+| LAYR | UInt8                            | [Metal type](#metal-data-type-table) of the `render_target_array_index` (for [layered rendering](https://developer.apple.com/documentation/metal/render_passes/rendering_to_multiple_texture_slices_in_a_draw_command)) |
 | TESS | UInt8                            | Patch type and number of control points per-patch (for post-tessellation vertex function) |
 | ENDT |                                  | End of the tag group |
 

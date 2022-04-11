@@ -202,6 +202,71 @@ Content of the `SARC` tag:
 | 0...n      | NULL-terminated C-style string | ID of the source code archive |
 | n...       | BZh  | Bzip2 compressed source code archive |
 
+### Metal Data Type Table
+
+| Value | Type | Value | Type |
+| ----- | ---- | ----- | ---- |
+| 0x00 | None | 0x01 | Struct |
+| 0x02 | Array | 0x03 | Float |
+| 0x04 | Float2 | 0x05 | Float3 |
+| 0x06 | Float4 | 0x07 | Float2x2 |
+| 0x08 | Float2x3 | 0x09 | Float2x4 |
+| 0x0A | Float3x2 | 0x0B | Float3x3 |
+| 0x0C | Float3x4 | 0x0D | Float4x2 |
+| 0x0E | Float4x3 | 0x0F | Float4x4 |
+| 0x10 | Half | 0x11 | Half2 |
+| 0x12 | Half3 | 0x13 | Half4 |
+| 0x14 | Half2x2 | 0x15 | Half2x3 |
+| 0x16 | Half2x4 | 0x17 | Half3x2 |
+| 0x18 | Half3x3 | 0x19 | Half3x4 |
+| 0x1A | Half4x2 | 0x1B | Half4x3 |
+| 0x1C | Half4x4 | 0x1D | Int |
+| 0x1E | Int2 | 0x1F | Int3 |
+| 0x20 | Int4 | 0x21 | UInt |
+| 0x22 | UInt2 | 0x23 | UInt3 |
+| 0x24 | UInt4 | 0x25 | Short |
+| 0x26 | Short2 | 0x27 | Short3 |
+| 0x28 | Short4 | 0x29 | UShort |
+| 0x2A | UShort2 | 0x2B | UShort3 |
+| 0x2C | UShort4 | 0x2D | Char |
+| 0x2E | Char2 | 0x2F | Char3 |
+| 0x30 | Char4 | 0x31 | UChar |
+| 0x32 | UChar2 | 0x33 | UChar3 |
+| 0x34 | UChar4 | 0x35 | Bool |
+| 0x36 | Bool2 | 0x37 | Bool3 |
+| 0x38 | Bool4 | 0x3A | Texture |
+| 0x3B | Sampler | 0x3C | Pointer |
+| 0x3E | R8Unorm | 0x3F | R8Snorm |
+| 0x40 | R16Unorm | 0x41 | R16Snorm |
+| 0x42 | RG8Unorm | 0x43 | RG8Snorm |
+| 0x44 | RG16Unorm | 0x45 | RG16Snorm |
+| 0x46 | RGBA8Unorm | 0x47 | RGBA8Unorm_sRGB |
+| 0x48 | RGBA8Snorm | 0x49 | RGBA16Unorm |
+| 0x4A | RGBA16Snorm | 0x4B | RGB10A2Unorm |
+| 0x4C | RG11B10Float | 0x4D | RGB9E5Float |
+| 0x4E | RenderPipeline | 0x4F | ComputePipeline |
+| 0x50 | IndirectCommandBuffer | 0x51 | Long |
+| 0x52 | Long2 | 0x53 | Long3 |
+| 0x54 | Long4 | 0x55 | ULong |
+| 0x56 | ULong2 | 0x57 | ULong3 |
+| 0x58 | ULong4 | 0x59 | Double |
+| 0x5A | Double2 | 0x5B | Double3 |
+| 0x5C | Double4 | 0x5D | Float8 |
+| 0x5E | Float16 | 0x5F | Half8 |
+| 0x60 | Half16 | 0x61 | Int8 |
+| 0x62 | Int16 | 0x63 | UInt8 |
+| 0x64 | UInt16 | 0x65 | Short8 |
+| 0x66 | Short16 | 0x67 | UShort8 |
+| 0x68 | UShort16 | 0x69 | Char8 |
+| 0x6A | Char16 | 0x6B | UChar8 |
+| 0x6C | UChar16 | 0x6D | Long8 |
+| 0x6E | Long16 | 0x6F | ULong8 |
+| 0x70 | ULong16 | 0x71 | Double8 |
+| 0x72 | Double16 | 0x73 | VisibleFunctionTable |
+| 0x74 | IntersectionFunctionTable | 0x75 | PrimitiveAccelerationStructure |
+| 0x76 | InstanceAccelerationStructure | 0x77 | Bool8 |
+| 0x78 | Bool16 |  | |
+
 ## ❤️ Contributing
 
 If you think there's a mistake, please open an issue. You can also choose to open a pull request with the failure test included. 
@@ -385,11 +450,28 @@ I also found a few things interesting in this process:
 
 ### Updates
 
+**Apr 10, 2022**
+
+Tags like `LAYR`, `VATY`, `CNST`, etc., contain `UInt8` values of Metal data types. The corresponding description for each data type value can be retrieved using a private class in Metal.framework -  [MTLTypeInternal](https://github.com/nst/iOS-Runtime-Headers/blob/fbb634c78269b0169efdead80955ba64eaaa2f21/Frameworks/Metal.framework/MTLTypeInternal.h)
+
+```objective-c
+id value = [[NSClassFromString(@"MTLTypeInternal") alloc] initWithDataType:0x06];
+NSLog(@"%@", value.description); // MTLDataTypeFloat4
+```
+
+I created a command line tool to generate the Metal data type table.
+
+```shell
+cd Utilities
+swift run metal-data-type-tools gen-markdown --columns 2 # generate a markdown table
+swift run metal-data-type-tools gen-swift # generate a Swift enum for Metal data types.
+```
+
 **Mar 31, 2022** 
 
 The `air-lld` (`Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/metal/ios/bin/air-lld`) also provides a lot of information about how the `metallib` file is built. Some section names and descriptions are updated.
 
-```
+```cpp
 int __ZN4llvm3air20MetalLibObjectWriter5writeEv() {
     r14 = rdi;
     rax = llvm::air::MetalLibObjectWriter::writeHeader();

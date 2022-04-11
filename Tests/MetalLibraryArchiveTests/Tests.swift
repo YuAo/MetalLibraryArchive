@@ -449,7 +449,7 @@ class MetalLibraryArchiveTests_macOSSDK: XCTestCase {
         using namespace metal;
         
         struct ControlPoint {
-            float3 position [[attribute(0)]];
+            float4 position [[attribute(0)]];
             float3 normal   [[attribute(1)]];
         };
         
@@ -473,10 +473,15 @@ class MetalLibraryArchiveTests_macOSSDK: XCTestCase {
         XCTAssertEqual(archive.functions.count, 1)
         XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
         XCTAssertEqual(archive.libraryType, .executable)
-        let tessellationTag = try XCTUnwrap(archive.functions[0].tags.first(where: { $0.name == "TESS" }))
+        let tessellationTag = try XCTUnwrap(archive.functions.first?.tags.first(where: { $0.name == "TESS" }))
         XCTAssertEqual(tessellationTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), 4 << 2 | 2)
         XCTAssert(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "VATT" }))
         XCTAssert(archive.functions[0].publicMetadataTags.contains(where: { $0.name == "VATY" }))
+        
+        let vatyTag = try XCTUnwrap(archive.functions.first?.publicMetadataTags.first(where: { $0.name == "VATY" }))
+        XCTAssertEqual(vatyTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt16.self)[0] }), 2) // count
+        XCTAssertEqual(vatyTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[2] }), MetalDataType.float4.rawValue) //position
+        XCTAssertEqual(vatyTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[3] }), MetalDataType.float3.rawValue) //normal
     }
     
     func testFuntionConstants() throws {
@@ -534,8 +539,8 @@ class MetalLibraryArchiveTests_macOSSDK: XCTestCase {
         XCTAssertEqual(archive.functions.count, 1)
         XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
         XCTAssertEqual(archive.libraryType, .executable)
-        let layerTag = try XCTUnwrap(archive.functions[0].tags.first(where: { $0.name == "LAYR" }))
-        XCTAssertEqual(layerTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), 0x21)
+        let layerTag = try XCTUnwrap(archive.functions.first?.tags.first(where: { $0.name == "LAYR" }))
+        XCTAssertEqual(layerTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), MetalDataType.uint.rawValue)
     }
     
     func testLayeredRendering_ushort() throws {
@@ -557,8 +562,8 @@ class MetalLibraryArchiveTests_macOSSDK: XCTestCase {
         XCTAssertEqual(archive.functions.count, 1)
         XCTAssertEqual(archive.targetPlatform, sdk.targetPlatform)
         XCTAssertEqual(archive.libraryType, .executable)
-        let layerTag = try XCTUnwrap(archive.functions[0].tags.first(where: { $0.name == "LAYR" }))
-        XCTAssertEqual(layerTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), 0x29)
+        let layerTag = try XCTUnwrap(archive.functions.first?.tags.first(where: { $0.name == "LAYR" }))
+        XCTAssertEqual(layerTag.content.withUnsafeBytes({ $0.bindMemory(to: UInt8.self)[0] }), MetalDataType.ushort.rawValue)
     }
     
     func testSourceArchives_executable() throws {

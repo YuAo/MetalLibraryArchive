@@ -3,6 +3,20 @@
 
 import PackageDescription
 
+let packageDependencies: [Package.Dependency]
+#if os(WASI)
+packageDependencies = []
+#else
+packageDependencies = [.package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "3.0.0")]
+#endif
+
+let metalLibraryArchiveTargetDependencies: [Target.Dependency]
+#if os(WASI)
+metalLibraryArchiveTargetDependencies = []
+#else
+metalLibraryArchiveTargetDependencies = [.product(name: "Crypto", package: "swift-crypto")]
+#endif
+
 let package = Package(
     name: "MetalLibraryArchive",
     platforms: [
@@ -17,18 +31,14 @@ let package = Package(
             name: "MetalLibraryArchive",
             targets: ["MetalLibraryArchive"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "3.0.0")
-    ],
+    dependencies: packageDependencies,
     targets: [
         .executableTarget(name: "Explorer",
                           dependencies: [
                             "MetalLibraryArchive"
                           ]),
         .target(name: "MetalLibraryArchive",
-                dependencies: [
-                    .product(name: "Crypto", package: "swift-crypto")
-                ]),
+                dependencies: metalLibraryArchiveTargetDependencies),
         .testTarget(
             name: "MetalLibraryArchiveTests",
             dependencies: [

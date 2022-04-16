@@ -44,6 +44,7 @@ public struct Function: Hashable {
     public let publicMetadataTags: [Tag]
     public let privateMetadataTags: [Tag]
     public let bitcode: Data
+    public let bitcodeHash: Data
 }
 
 extension Function {

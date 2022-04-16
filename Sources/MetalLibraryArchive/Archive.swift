@@ -1,5 +1,8 @@
 import Foundation
+
+#if canImport(Crypto)
 import Crypto
+#endif
 
 public struct Archive: Hashable {
     
@@ -299,9 +302,12 @@ public struct Archive: Hashable {
             for info in functionInfos {
                 try dataScanner.seek(to: bitcodeOffset + Int(info.offsets.bitcode))
                 let data = try dataScanner.scanData(byteCount: Int(info.bitcodeSize))
+                
+                #if canImport(Crypto)
                 guard SHA256.hash(data: data) == info.hash else {
                     throw Error.invalidBitcodeHash
                 }
+                #endif
                 
                 try dataScanner.seek(to: publicMetadataOffset + Int(info.offsets.publicMetadata))
                 let publicMetadataTagSize = try dataScanner.scan(UInt32.self)
@@ -323,7 +329,8 @@ public struct Archive: Hashable {
                                         tags: info.tags,
                                         publicMetadataTags: publicMetadataTags,
                                         privateMetadataTags: privateMetadataTags,
-                                        bitcode: data))
+                                        bitcode: data,
+                                        bitcodeHash: info.hash))
             }
             return entries
         }()

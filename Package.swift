@@ -2,20 +2,23 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
+
+let isUsingSwiftWASMToolchain = (ProcessInfo.processInfo.environment["TOOLCHAINS"] == "swiftwasm")
 
 let packageDependencies: [Package.Dependency]
-#if os(WASI)
-packageDependencies = []
-#else
-packageDependencies = [.package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "3.0.0")]
-#endif
+if isUsingSwiftWASMToolchain {
+    packageDependencies = []
+} else {
+    packageDependencies = [.package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "3.0.0")]
+}
 
 let metalLibraryArchiveTargetDependencies: [Target.Dependency]
-#if os(WASI)
-metalLibraryArchiveTargetDependencies = []
-#else
-metalLibraryArchiveTargetDependencies = [.product(name: "Crypto", package: "swift-crypto")]
-#endif
+if isUsingSwiftWASMToolchain {
+    metalLibraryArchiveTargetDependencies = []
+} else {
+    metalLibraryArchiveTargetDependencies = [.product(name: "Crypto", package: "swift-crypto")]
+}
 
 let package = Package(
     name: "MetalLibraryArchive",

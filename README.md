@@ -16,6 +16,12 @@ The extracted information of a Metal function includes:
 
 ## 🎈 Usage
 
+### Web App
+
+Available at: https://yuao.github.io/MetalLibraryExplorer
+
+[Learn more](https://github.com/YuAo/MetalLibraryExplorer)
+
 ### Explorer App
 
 An executable target called "Explorer" is included in the package. "Explorer" is a GUI app which can open, unpack and disassemble (with the help of `llvm-dis`) `metallib` files.

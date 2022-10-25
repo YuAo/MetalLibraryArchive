@@ -24,7 +24,7 @@ Available at: https://yuao.github.io/MetalLibraryExplorer
 
 ### Explorer App
 
-An executable target called "Explorer" is included in the package. "Explorer" is a GUI app which can open, unpack and disassemble (with the help of `llvm-dis`) `metallib` files.
+An executable target called "Explorer" is included in the package. "Explorer" is a GUI app that can open, unpack and disassemble (with the help of `llvm-dis`) `metallib` files.
 
 **Note** `llvm-dis` is not included, you can get a copy of the binary at https://github.com/llvm/llvm-project/releases
 
@@ -94,7 +94,7 @@ let functions = archive.functions
 | 0...3      | UInt32     | Entry count (the number of functions) |
 | 4...       | Tag Groups | Each tag group holds some information about a Metal function |
 
-The number of tag groups equals to the number of functions.
+The number of tag groups equals the number of functions.
 
 ### Tag Group
 
@@ -119,8 +119,8 @@ The number of tag groups equals to the number of functions.
 | MDSZ | UInt64                           | Size of the bitcode |
 | TYPE | UInt8                            | Type of the function |
 | HASH | SHA256 Digest                    | Hash of the bitcode data (SHA256) |
-| OFFT | (UInt64, UInt64, UInt64)         | Offsets of the information about this function in public metadata section, private metadata section and bitcode section |
-| SOFF | UInt64                           | Offset of the source code archive of the function in embeded source code section |
+| OFFT | (UInt64, UInt64, UInt64)         | Offsets of the information about this function in the public metadata section, private metadata section, and bitcode section |
+| SOFF | UInt64                           | Offset of the source code archive of the function in the embedded source code section |
 | VERS | (UInt16, UInt16, UInt16, UInt16) | Bitcode and language versions (air.major, air.minor, language.major, language.minor) |
 | LAYR | UInt8                            | [Metal type](#metal-data-type-table) of the `render_target_array_index` (for [layered rendering](https://developer.apple.com/documentation/metal/render_passes/rendering_to_multiple_texture_slices_in_a_draw_command)) |
 | TESS | UInt8                            | Patch type and number of control points per-patch (for post-tessellation vertex function) |
@@ -154,7 +154,7 @@ Tags: `CNST`, `VATT`, `VATY`, `RETR`, `ARGR`, etc.
 
 ### Private Metadata
 
-Contains pathes to the shader source (`DEBI` tag) and `.air` (`DEPF` tag) files.
+Contains paths to the shader source (`DEBI` tag) and `.air` (`DEPF` tag) files.
 
 ### Header Extension
 
@@ -171,7 +171,7 @@ Only exists if `FunctionListOffset + FunctionListSize + 4 != PublicMetadataOffse
 | HDYN | (UInt64, UInt64) | Offset and size of the dynamic header section |
 | VLST | (UInt64, UInt64) | Offset and size of the exported variable list | 
 | ILST | (UInt64, UInt64) | Offset and size of the imported symbol list | 
-| HSRD/HSRC | (UInt64, UInt64) | Offset and size of the embeded source code section |
+| HSRD/HSRC | (UInt64, UInt64) | Offset and size of the embedded source code section |
 | UUID | UUID | UUID of the Metal library. |
 | ENDT |      | End of the header extension |
 
@@ -186,7 +186,7 @@ Only exists if `FunctionListOffset + FunctionListSize + 4 != PublicMetadataOffse
 
 Variable list and imported symbol list have structures that are similar to that of the function list.
 
-### Embeded Source Code Section
+### Embedded Source Code Section
 
 Only exists if the `metallib` build process is configured to [include source code](https://developer.apple.com/documentation/metal/developing_and_debugging_metal_shaders).
 
@@ -279,7 +279,7 @@ If you think there's a mistake, please open an issue. You can also choose to ope
 
 ## 👾 The Story
 
-This project would not have started without [zhuowei's research](https://worthdoingbadly.com/metalbitcode/) that revealed the basic binary layout of a `metallib` file, the function list as well as the bitcode section. Thanks, [@zhuowei](https://github.com/zhuowei)! 
+This project would not have started without [zhuowei's research](https://worthdoingbadly.com/metalbitcode/) which revealed the basic binary layout of a `metallib` file, the function list as well as the bitcode section. Thanks, [@zhuowei](https://github.com/zhuowei)! 
 
 ### What the assembly can tell
 
@@ -315,7 +315,7 @@ I tried to continue the research to get a complete structure of the `metallib` f
     }
     ```
     
-- A `Int16` value at offset `0x4` is related to the target platform.
+- An `Int16` value at offset `0x4` is related to the target platform.
 
     ```cpp
     loc_6a610:
@@ -332,7 +332,7 @@ I tried to continue the research to get a complete structure of the `metallib` f
     goto loc_6a689;
     ```
 
-- There is a "Header Extension Section" that contains information about "Dynamic Header Section", "Imported Symbol List" and "Variable List":
+- There is a "Header Extension Section" that contains information about the "Dynamic Header Section", "Imported Symbol List" and "Variable List":
 
     ```cpp
     if (MTLLibraryDataWithArchive::parseHeaderExtension(r13, r13 + 0x100, r14) != 0x0) {
@@ -384,7 +384,7 @@ I tried to continue the research to get a complete structure of the `metallib` f
 
 After some digging around I was able to get an overview of the `metallib` file's structure:
 
-- The file has a 88 bytes header that contains file version, target platform, library type, section indices, etc.
+- The file has a 88 bytes header that contains the file version, target platform, library type, section indices, etc.
 
 - There are 4 sections recorded in the file header:
     
@@ -410,7 +410,7 @@ After some digging around I was able to get an overview of the `metallib` file's
     
         - Each group represents a set of properties of an item. 
         
-        - Tag group ends with an `ENDT` tag.
+        - The tag group ends with an `ENDT` tag.
 
 ### TDG - "Test Driven Guessing"
 
@@ -428,7 +428,7 @@ Next, I need to figure out what information each tag/field holds. This can be ha
 
 It seems that the quickest way to get this information is through experiments.
 
-I started by manually compiling `metal` files with different shaders, options and SDKs, then inspecting each field I was interested in. My desktop was quickly flooded with `metallib` files and [HexFiend](https://hexfiend.com/) windows, but I didn't find much useful information. I need something that can automatically build `metallib` and presents me only the field that I'm interested in.
+I started by manually compiling `metal` files with different shaders, options, and SDKs, then inspecting each field I was interested in. My desktop was quickly flooded with `metallib` files and [HexFiend](https://hexfiend.com/) windows, but I didn't find much useful information. I need something that can automatically build `metallib` and presents me only the field that I'm interested in.
 
 I came up with the "Test Driven Guessing":
 
@@ -448,7 +448,7 @@ After a few rounds, I was able to get the function type table, target OS table, 
 
 I also found a few things interesting in this process:
 
-- Metal does not support watchOS, however it is possible to build a `metallib` targeting watchOS. And Apple does include some `metallib`s in the watchOS SDK. (e.g. `Xcode.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreImage.framework/ci_filters.metallib`)
+- Metal does not support watchOS, however, it is possible to build a `metallib` targeting watchOS. And Apple does include some `metallib`s in the watchOS SDK. (e.g. `Xcode.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreImage.framework/ci_filters.metallib`)
 
 - Empty `metallib`s targeting old versions of iOS are [mistakenly marked as targeting macOS](https://github.com/YuAo/MetalLibraryArchive/blob/da16437b0549c7b21408e51b210627f73e323cbf/Tests/MetalLibraryArchiveTests/Tests.swift#L559).
 

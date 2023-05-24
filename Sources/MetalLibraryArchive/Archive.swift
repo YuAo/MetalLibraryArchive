@@ -299,9 +299,16 @@ public struct Archive: Hashable {
         
         let functions: [Function] = try {
             var entries: [Function] = []
-            for info in functionInfos {
+            for (index, info) in functionInfos.enumerated() {
                 try dataScanner.seek(to: bitcodeOffset + Int(info.offsets.bitcode))
-                let data = try dataScanner.scanData(byteCount: Int(info.bitcodeSize))
+                let functionBitcodeSize: UInt64
+                if let size = info.bitcodeSize {
+                    functionBitcodeSize = size
+                } else {
+                    let nextOffset: UInt64 = index < functionInfos.count - 1 ? functionInfos[index + 1].offsets.bitcode : UInt64(bitcodeSize);
+                    functionBitcodeSize = nextOffset - info.offsets.bitcode;
+                }
+                let data = try dataScanner.scanData(byteCount: Int(functionBitcodeSize))
                 
                 #if canImport(Crypto)
                 guard SHA256.hash(data: data) == info.hash else {
@@ -375,7 +382,7 @@ extension Archive {
     
     private struct FunctionInfo {
         var name: String
-        var bitcodeSize: UInt64
+        var bitcodeSize: UInt64?
         var offsets: (publicMetadata: UInt64, privateMetadata: UInt64, bitcode: UInt64)
         var type: FunctionType?
         var languageVersion: LanguageVersion
@@ -437,7 +444,7 @@ extension Archive {
                 break
             }
         }
-        guard let name = name, let bitcodeSize = bitcodeSize, let offsets = offsets, let hash = hash, let languageVersion = languageVersion else {
+        guard let name = name, let offsets = offsets, let hash = hash, let languageVersion = languageVersion else {
             throw Error.incompleteFunctionInfo
         }
         return FunctionInfo(name: name, bitcodeSize: bitcodeSize, offsets: offsets, type: type, languageVersion: languageVersion, hash: hash, tags: tags)
